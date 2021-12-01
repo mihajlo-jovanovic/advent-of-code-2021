@@ -5,7 +5,7 @@ fn generator_input(input: &str) -> Vec<u16> {
 
 #[aoc(day1, part1)]
 fn part1(input: &[u16]) -> usize {
-    input.windows(2).map(|pair| if pair[0] < pair[1] { 1 } else { 0 }).sum()
+    input.windows(2).fold(0, |acc, pair| if pair[0] < pair[1] { acc + 1 } else { acc })
 }
 
 #[aoc(day1, part2)]
