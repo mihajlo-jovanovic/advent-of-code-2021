@@ -12,3 +12,16 @@ Cargo.lock
 # IntelliJ/Idea files
 .idea
 *.iml
+
+# Clojure ignores
+/classes
+/checkouts
+profiles.clj
+pom.xml
+pom.xml.asc
+*.jar
+*.class
+/.lein-*
+/.nrepl-port
+.hgignore
+.hg/
