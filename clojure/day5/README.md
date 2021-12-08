@@ -1,10 +1,7 @@
-# day5
+# Day 5
 
-A Clojure library designed to ... well, that part is up to you.
-
-## Usage
-
-FIXME
+This is my attempt to re-write a very ugly solution in Rust to something cleaner and more elegant. Did not finish, may 
+get back to it at some point...
 
 ## License
 

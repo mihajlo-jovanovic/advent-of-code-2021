@@ -1,10 +1,7 @@
-# day7
+# day 7
 
-A Clojure library designed to ... well, that part is up to you.
-
-## Usage
-
-FIXME
+Not much to say here, except that these types of puzzles remind me how much I enjoy Clojure and its elegance: no messin'
+around with types, structs, objects; just data and pure functional bliss :-)
 
 ## License
 
