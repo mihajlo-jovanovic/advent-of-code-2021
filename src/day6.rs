@@ -7,6 +7,7 @@ fn generator_input(input: &str) -> Vec<u8> {
 }
 // todo: get this working; for now it was easier to do it in Clojure, but would like to use this to
 // understand a bit more about how Rust works `under the hood`
+#[allow(dead_code)]
 fn seq(l: Vec<u8>, mut days: u8) -> usize {
     let mut lanternfish = BTreeMap::new();
     for i in l {
