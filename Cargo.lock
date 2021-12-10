@@ -9,6 +9,7 @@ dependencies = [
  "aoc-runner",
  "aoc-runner-derive",
  "array2d",
+ "bimap",
  "itertools",
 ]
 
@@ -46,6 +47,12 @@ name = "array2d"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "224b2db9d3e7dd068c8b07b186076ee668ce38810d0ba12c80dacbcbb7cfc9e8"
+
+[[package]]
+name = "bimap"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50ae17cabbc8a38a1e3e4c1a6a664e9a09672dc14d0896fa8d865d3a5a446b07"
 
 [[package]]
 name = "either"
