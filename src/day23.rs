@@ -63,7 +63,9 @@ fn all_valid_states(current: &Array2D<char>) -> Vec<Edge> {
                 if *el == '.' {
                     continue;
                 }
-                move_to_room(current, &mut edges, el, (r as u8, i as u8));
+                if can_go_to_final_room(current, el, (r as u8, i as u8)) {
+                    move_to_room(current, &mut edges, el, (r as u8, i as u8));
+                }
             }
             continue;
         }
@@ -79,13 +81,14 @@ fn all_valid_states(current: &Array2D<char>) -> Vec<Edge> {
                 }
             }
             // 1. Check if we can go straight to the final room (from a room)
-            move_to_room(current, &mut edges, el, (r as u8, i as u8));
-            //println!("{} pos: {:?}", el, (r, i));
-            // 2. Second, check whether we can move to a hallway
-            let valid_hallway_positions = vec![0, 1, 3, 5, 7, 9, 10];
-            for hallway_pos in valid_hallway_positions {
-                if current[(0, hallway_pos)] == '.' && nothing_in_the_way(&current.as_rows()[0], i, hallway_pos) {
-                    move_amphipod(current, &mut edges, el, (r as u8, i as u8), (0, hallway_pos as u8));
+            if can_go_to_final_room(current, el, (r as u8, i as u8)) {
+                move_to_room(current, &mut edges, el, (r as u8, i as u8));
+            } else { // 2. Second, check whether we can move to a hallway
+                let valid_hallway_positions = vec![0, 1, 3, 5, 7, 9, 10];
+                for hallway_pos in valid_hallway_positions {
+                    if current[(0, hallway_pos)] == '.' && nothing_in_the_way(&current.as_rows()[0], i, hallway_pos) {
+                        move_amphipod(current, &mut edges, el, (r as u8, i as u8), (0, hallway_pos as u8));
+                    }
                 }
             }
         }
@@ -94,25 +97,21 @@ fn all_valid_states(current: &Array2D<char>) -> Vec<Edge> {
 }
 
 fn move_to_room(current: &Array2D<char>, mut edges: &mut Vec<Edge>, kind: &char, pos: (u8, u8)) {
-    if can_go_to_final_room(current, kind, pos) {
-        let final_room = final_room(kind);
-        let mut dest = (1, final_room);
-        for r in (2..current.num_rows()).rev() {
-            if current[(r, final_room as usize)] == '.' {
-                dest = (r as u8, final_room);
-            }
+    let final_room = final_room(kind);
+    let mut dest = (1, final_room);
+    for r in (2..current.num_rows()).rev() {
+        if current[(r, final_room as usize)] == '.' {
+            dest = (r as u8, final_room);
         }
-        move_amphipod(current, &mut edges, kind, pos, dest);
     }
+    move_amphipod(current, &mut edges, kind, pos, dest);
 }
 
 fn move_amphipod(state: &Array2D<char>, edges: &mut Vec<Edge>, kind: &char, start: (u8, u8), end: (u8, u8)) {
     let cost = euclidean_dist(*kind, start, end);
-    //println!("moving {} to {:?} with cost {}", kind, end, cost);
     let mut new_state = state.as_row_major();
     let start_idx: usize = start.0 as usize * state.num_columns() + start.1 as usize;
     let end_idx: usize = end.0 as usize * state.num_columns() + end.1 as usize;
-    //println!("moving from {} to {}", start_idx, end_idx);
     new_state.swap(start_idx, end_idx);
     let n: Array2D<char> = Array2D::from_row_major(new_state.as_slice(), state.num_rows(), state.num_columns());
     //print(&n);
