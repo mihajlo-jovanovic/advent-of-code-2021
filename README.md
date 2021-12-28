@@ -14,3 +14,8 @@ for the job. Sub 1ms times for both parts...
 
 Dijkstra `Shortest Path` again...took a while to find the right state representation and code it in Rust, but it was 
 worth it.
+
+## Things I learned about Rust while doing AoC
+* Derived traits: Copy vs Clone, Eq vs PartialEq
+* When to use usize vs u8, u32 etc.
+* Testing: use --nocapture to see std out, #[ignore] etc.
