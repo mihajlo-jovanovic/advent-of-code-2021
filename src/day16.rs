@@ -1,9 +1,6 @@
-use nom::combinator::cond;
 use nom::multi::count;
 use nom::sequence::tuple;
 use nom::{bits::complete::take, IResult};
-
-//use nom::bits::bits;
 
 #[aoc_generator(day16)]
 fn generator_input(input: &str) -> Vec<u8> {
@@ -17,26 +14,16 @@ pub struct Header {
 }
 
 #[aoc(day16, part1)]
-fn part1(bits: &[u8]) -> usize {
-    println!("total bits to parse: {}", bits.len());
-    1
+fn part1(bits: &[u8]) -> u64 {
+    //println!("total bits to parse: {}", bits.len());
+    packet((bits, 0)).unwrap().1
 }
-
-// fn take_4_bits(input: &[u8]) -> IResult<&[u8], u64> {
-//     bits(take::<_, _, _, (_, _)>(11usize))(input)
-// }
 
 fn header(i: (&[u8], usize)) -> IResult<(&[u8], usize), Header> {
-    let (i, ver): ((&[u8], usize), u8) = take::<_, _, _, _>(3usize)(i)?;
-    let (i, type_id): ((&[u8], usize), u8) = take::<_, _, _, _>(3usize)(i)?;
+    let (i, ver): ((&[u8], usize), u8) = take(3usize)(i)?;
+    let (i, type_id): ((&[u8], usize), u8) = take(3usize)(i)?;
     Ok((i, Header { ver, type_id }))
 }
-
-// fn parse_header(i: (&[u8], usize)) -> IResult<(&[u8], usize), Header> {
-//     let (i, ver): ((&[u8], usize), u8) = take::<_, _, _, (_, _)>(3usize)(i)?;
-//     let (i, type_id): ((&[u8], usize), u8) = take::<_, _, _, (_, _)>(3usize)(i)?;
-//     Ok((i, Header{ ver, type_id }))
-// }
 
 fn take4(input: (&[u8], usize)) -> IResult<(&[u8], usize), u8> {
     take(4u8)(input)
@@ -50,13 +37,28 @@ fn take11(input: (&[u8], usize)) -> IResult<(&[u8], usize), u16> {
     take(11u8)(input)
 }
 
+fn take15(input: (&[u8], usize)) -> IResult<(&[u8], usize), u16> {
+    take(15u8)(input)
+}
+
+fn packet(input: (&[u8], usize)) -> IResult<(&[u8], usize), u64> {
+    let (i, h) = header(input)?;
+    if h.type_id == 4 {
+        let (i, v) = literal(i)?;
+        Ok((i, v))
+    } else {
+        let (i, v) = operator(i, h.type_id)?;
+        Ok((i, v))
+    }
+}
+
 fn literal(input: (&[u8], usize)) -> IResult<(&[u8], usize), u64> {
     let mut group = tuple((take1, take4))(input)?;
     let mut words: Vec<u8> = vec![rest(group.1 .1)];
-    println!("{:?} {}", group.1, group.0 .1);
+    //println!("{:?} {}", group.1, group.0 .1);
     while group.1 .0 == 1 {
         group = tuple((take1, take4))(group.0)?;
-        println!("{:?} {}", group.1, group.0 .1);
+        //println!("{:?} {}", group.1, group.0 .1);
         words.push(rest(group.1 .1));
     }
     Ok((group.0, combine_literal(&words)))
@@ -70,107 +72,81 @@ fn combine_literal(words: &[u8]) -> u64 {
         .sum::<u64>()
 }
 
-// fn parse_literal(i: (&[u8], usize)) -> IResult<(&[u8], usize), (u64, usize)> {
-//     let mut chunk: ((&[u8], usize), u8) = take::<_, _, _, _>(5usize)(i)?;
-//     //println!("{}", chunk.1);
-//     let mut done = !leading_bit_on(chunk.1);
-//     let mut words: Vec<u8> = vec![rest(chunk.1)];
-//     while !done {
-//         chunk = take::<_, _, _, _>(5usize)(chunk.0)?;
-//         //println!("{}", chunk.1);
-//         done = !leading_bit_on(chunk.1);
-//         words.push(rest(chunk.1));
-//         //println!("parsed: {}  prefix: {}", words.get(0).unwrap(), leading_bit_on(chunk.1));
-//         if done {
-//             break;
-//         }
-//     }
-//     //println!("words: {:?}", words);
-//     let total = words.iter().enumerate().map(|(i, w)| *w as u64 * 2_u64.pow(((words.len() - i - 1) * 4) as u32)).sum();
-//     return Ok((chunk.0, (total, words.len()*5)));
-// }
-//
-fn operator(input: (&[u8], usize)) -> IResult<(&[u8], usize), Vec<(Header, u64)>> {
+fn operator(input: (&[u8], usize), type_id: u8) -> IResult<(&[u8], usize), u64> {
     let (i, a) = take1(input)?;
-    let (i, b) = cond(a == 1, take11)(i)?;
-    println!("sub packets to read: {}", b.unwrap());
-    count(tuple((header, literal)), b.unwrap() as usize)(i)
+    if a == 0 {
+        let (i, a) = take15(i)?;
+        //println!("bits to read: {}", a);
+        parse_by_packet_len(i, a, type_id)
+    } else {
+        let (i, a) = take11(i)?;
+        //println!("sub packets to read: {}", a);
+        let (i, col) = count(packet, a as usize)(i)?;
+        //let ver_sum = col.iter().sum();
+        //println!("ver_sum: {}", ver_sum);
+        Ok((i, reduce_by_type_id(col, type_id)))
+    }
 }
 
-// fn parse_operator(i: (&[u8], usize)) -> IResult<(&[u8], usize), (u64, usize)> {
-//     let mut cursor: (&[u8], usize);
-//     let (cursor, len_type_id): ((&[u8], usize), u8) = take::<_, _, _, (_, _)>(1usize)(i)?;
-//     //let mut cursor: (&[u8], usize) = i;
-//     let mut read: usize = 0;
-//     let mut versions: u64 = 0;
-//     if len_type_id == 1 {
-//         let (cursor, sub_packet_count): ((&[u8], usize), usize) = take::<_, _, _, (_, _)>(11usize)(cursor)?;
-//         println!("sub_packet_count: {}", sub_packet_count);
-//         let mut total_bits_read = 0;
-//         for i in 0..sub_packet_count {
-//             let (cursor, h)  = parse_header(cursor)?;
-//             versions += h.0 as u64;
-//             println!("version num: {}", h.0);
-//             total_bits_read += 6;
-//             if h.1 == 4 {
-//                 let (cursor, s1) = parse_literal(cursor)?;
-//                 total_bits_read += s1.1;
-//                 println!("s: {}  bits read: {}", s1.0, s1.1);
-//             } else {
-//                 let (cursor, s1) = parse_operator(cursor)?;
-//                 versions += s1.0;
-//                 total_bits_read += s1.1;
-//                 println!("s: {}  bits read: {}", s1.0, s1.1);
-//             }
-//         }
-//         read = 16 + total_bits_read;
-//     } else {
-//         let (cursor, sub_packets_bits): ((&[u8], usize), usize) = take::<_, _, _, (_, _)>(15usize)(cursor)?;
-//         println!("sub_packets_bits: {}", sub_packets_bits);
-//         //0011 1000 0000 0000 0110 1111 0100 0101 0010 1001 0001 0010 0000 0000
-//         //println!("offset: {}", i.1);
-//         let mut total_bits_read = 0;
-//         //let mut cursor: (&[u8], usize) = i;
-//         while total_bits_read < sub_packets_bits {
-//             let (cursor, h)  = parse_header(cursor)?;
-//             versions += h.0 as u64;
-//             println!("version num: {}", h.0);
-//             total_bits_read += 6;
-//             if h.1 == 4 {
-//                 let (cursor, s1) = parse_literal(cursor)?;
-//                 total_bits_read += s1.1;
-//                 println!("s: {}  bits read: {}", s1.0, s1.1);
-//             } else {
-//                 let (cursor, s1) = parse_operator(cursor)?;
-//                 versions += s1.0;
-//                 total_bits_read += s1.1;
-//                 println!("s: {}  bits read: {}", s1.0, s1.1);
-//             }
-//         }
-//         read = 16 + total_bits_read;
-//
-//
-//         //println!("header: {:?}", h);
-//         //println!("offset: {}", i.1);
-//
-//         //println!("offset: {}", i.1);
-//         //let (i, h) = parse_header(i)?;
-//         //println!("offset: {}", i.1);
-//         //println!("header: {:?}", h);
-//         //let (i, s2) = parse_literal(i)?;
-//         //println!("offset: {}", i.1);
-//
-//     }
-//     Ok((cursor, (versions, read)))
-// }
+fn reduce_by_type_id(col: Vec<u64>, type_id: u8) -> u64 {
+    match type_id {
+        0 => col.iter().sum(),
+        1 => col.iter().product(),
+        2 => *col.iter().min().unwrap(),
+        3 => *col.iter().max().unwrap(),
+        5 => {
+            if col[0] > col[1] {
+                1
+            } else {
+                0
+            }
+        }
+        6 => {
+            if col[0] < col[1] {
+                1
+            } else {
+                0
+            }
+        }
+        7 => {
+            if col[0] == col[1] {
+                1
+            } else {
+                0
+            }
+        }
+        _ => panic!("Invalid type ID: {}", type_id),
+    }
+}
 
-#[allow(dead_code)]
-fn leading_bit_on(n: u8) -> bool {
-    n & (1 << 4) != 0
+fn parse_by_packet_len(
+    input: (&[u8], usize),
+    len_bits: u16,
+    type_id: u8,
+) -> IResult<(&[u8], usize), u64> {
+    let mut total_bits_read = 0;
+    let mut i = input;
+    let mut col: Vec<u64> = vec![];
+    let start_len = input.0.len();
+    let start_offset = input.1;
+    while total_bits_read < len_bits {
+        //println!("len (byte): {} offset: {}", input.0.len(), input.1);
+        let (i2, v) = packet(i)?;
+        i = i2;
+        //println!("{:?}", v);
+        //println!("len (byte): {} offset: {}", i.0.len(), i.1);
+
+        total_bits_read =
+            (((start_len - i.0.len()) * 8) as i16 + (i.1 as i16 - start_offset as i16)) as u16;
+        //println!("total read to far: {}", total_bits_read);
+
+        col.push(v);
+    }
+    Ok((i, reduce_by_type_id(col, type_id)))
 }
 
 fn rest(n: u8) -> u8 {
-    n & 2_u8.pow(4) - 1
+    n & (2_u8.pow(4) - 1)
 }
 
 #[cfg(test)]
@@ -217,11 +193,12 @@ mod tests {
     fn operator_w_length_bits_two_sub_literals() {
         let op_w_two_sub_packets = generator_input("38006F45291200");
         let i = &op_w_two_sub_packets[..];
-        let (_, hdr) = header((i, 0)).unwrap();
+        let (i, hdr) = header((i, 0)).unwrap();
         assert_eq!(1, hdr.ver);
         assert_eq!(6, hdr.type_id);
-        //let (_, l) = parse_operator(i).unwrap();
-        //assert_eq!(9, l.0+1);
+        let (_, l) = operator(i, hdr.type_id).unwrap();
+        println!("result {:?}", l);
+        assert_eq!(8, l);
     }
 
     #[test]
@@ -231,7 +208,35 @@ mod tests {
         let (i, hdr) = header((i, 0)).unwrap();
         assert_eq!(7, hdr.ver);
         assert_eq!(3, hdr.type_id);
-        let (_, l) = operator(i).unwrap();
+        let (_, l) = operator(i, hdr.type_id).unwrap();
         println!("result {:?}", l);
+        assert_eq!(7, l);
+    }
+
+    #[test]
+    fn operators_nested() {
+        let bits = generator_input("8A004A801A8002F478");
+        let i = &bits[..];
+        let (i, hdr) = header((i, 0)).unwrap();
+        assert_eq!(4, hdr.ver);
+        assert_eq!(2, hdr.type_id);
+        let (_, l) = operator(i, hdr.type_id).unwrap();
+        println!("result {:?}", l);
+        assert_eq!(12, l);
+        assert_eq!(16, part1(&bits));
+    }
+
+    #[test]
+    fn test_part1() {
+        // assert_eq!(12, part1(&generator_input("620080001611562C8802118E34")));
+        // assert_eq!(23, part1(&generator_input("C0015000016115A2E0802F182340")));
+        // assert_eq!(
+        //     31,
+        //     part1(&generator_input("A0016C880162017C3686B18A3D4780"))
+        // );
+        assert_eq!(3, part1(&generator_input("C200B40A82")));
+        assert_eq!(54, part1(&generator_input("04005AC33890")));
+        assert_eq!(7, part1(&generator_input("880086C3E88112")));
+        assert_eq!(1, part1(&generator_input("9C0141080250320F1802104A08")));
     }
 }
