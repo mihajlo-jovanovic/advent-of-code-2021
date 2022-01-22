@@ -87,7 +87,10 @@
   ([{:keys [left right] :as pair} count]
    (let [pair-to-explode (find-exploding-pair pair)]
      (if pair-to-explode
-       (replace-with-zero (send-left (send-right pair (:right pair-to-explode)) (:left pair-to-explode)))
+       (-> pair
+           (send-right (:right pair-to-explode))
+           (send-left (:left pair-to-explode))
+           (replace-with-zero))
        pair))))
 
 (defn add [n1 n2]
@@ -122,12 +125,12 @@
 
 (defn sf-reduce
   [tree]
-  (if (> (height tree) 5)
-    (sf-reduce (explode tree))
-    (let [split-count (count (filter #(> % 9) (to-seq tree)))]
-      (if (> split-count 0)
-        (sf-reduce (find-and-split tree))
-        tree))))
+  (loop [t tree]
+    (if (<= (height t) 5)
+      (if (= 0 (count (filter #(> % 9) (to-seq t))))
+        t
+        (recur (find-and-split t)))
+      (recur (explode t)))))
 
 (def sf-add (comp sf-reduce add-pairs))
 
