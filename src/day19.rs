@@ -26,9 +26,21 @@ fn generator_input(input: &str) -> Vec<Vec<(i16, i16, i16)>> {
 
 #[aoc(day19, part1)]
 fn part1(scanner_reports: &[Vec<(i16, i16, i16)>]) -> usize {
-    let mut scanners = vec![];
+    let (beacons, _) = assemble_full_map(scanner_reports);
+    beacons.iter().fold(HashSet::new(), |x, y| x.union(&HashSet::from_iter(y.iter())).cloned().collect()).len()
+}
+
+#[aoc(day19, part2)]
+fn part2(scanner_reports: &[Vec<(i16, i16, i16)>]) -> i16 {
+    let (_, scanners) = assemble_full_map(scanner_reports);
+    scanners.iter().combinations(2).map(|coll| manhattan(coll[0], coll[1])).max().unwrap()
+}
+
+fn assemble_full_map(scanner_reports: &[Vec<Position>]) -> (Vec<Vec<Position>>, Vec<Position>) {
+    let mut beacons = vec![];
+    let mut scanners = vec![(0, 0, 0)];
     for i in scanner_reports {
-        scanners.push(i.clone());
+        beacons.push(i.clone());
     }
     let overlap = overlap(scanner_reports);
     let mut found: Vec<usize> = vec![0];
@@ -36,19 +48,23 @@ fn part1(scanner_reports: &[Vec<(i16, i16, i16)>]) -> usize {
         for (s1, s2) in &overlap {
             if found.contains(s1) && !found.contains(s2) {
                 println!("Joining {} and {}", s1, s2);
-                let tmp = &scanners[*s1].clone();
-                align(tmp, &mut scanners[*s2]);
+                let tmp = &beacons[*s1].clone();
+                scanners.push(align(tmp, &mut beacons[*s2]));
                 found.push(*s2);
             }
             if !found.contains(s1) && found.contains(s2) {
                 println!("Joining {} and {}", s2, s1);
-                let tmp = &scanners[*s2].clone();
-                align(tmp, &mut scanners[*s1]);
+                let tmp = &beacons[*s2].clone();
+                scanners.push(align(tmp, &mut beacons[*s1]));
                 found.push(*s1)
             }
         }
     }
-    scanners.iter().fold(HashSet::new(), |x, y| x.union(&HashSet::from_iter(y.iter())).cloned().collect()).len()
+    (beacons, scanners)
+}
+
+fn manhattan(p1: &Position, p2: &Position) -> i16 {
+    (p1.0 - p2.0).abs() + (p1.1 - p2.1).abs() + (p1.2 - p2.2).abs()
 }
 
 fn overlap(scanners: &[Vec<(i16, i16, i16)>]) -> Vec<(usize, usize)> {
