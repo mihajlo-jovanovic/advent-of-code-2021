@@ -143,31 +143,18 @@ fn align(s1: &[Position], s2: &mut [Position]) -> Position {
     panic!("not found")
 }
 
+fn determinant(m: &Matrix3<i16>) -> i16 {
+    m[(0, 0)] * (m[(1, 1)] * m[(2, 2)] - (m[(1, 2)] * m[(2, 1)])) -
+        m[(0, 1)] * (m[(1, 0)] * m[(2, 2)] - (m[(1, 2)] * m[(2, 0)])) +
+        m[(0, 2)] * (m[(1, 0)] * m[(2, 1)] - (m[(1, 1)] * m[(2, 0)]))
+}
+
 fn special() -> Vec<Matrix3<i16>> {
-    vec![Matrix3::new(1, 0, 0, 0, 1, 0, 0, 0, 1),
-         Matrix3::new(-1, 0, 0, 0, -1, 0, 0, 0, 1),
-         Matrix3::new(-1, 0, 0, 0, 1, 0, 0, 0, -1),
-         Matrix3::new(1, 0, 0, 0, -1, 0, 0, 0, -1),
-         Matrix3::new(-1, 0, 0, 0, 0, 1, 0, 1, 0),
-         Matrix3::new(1, 0, 0, 0, 0, -1, 0, 1, 0),
-         Matrix3::new(1, 0, 0, 0, 0, 1, 0, -1, 0),
-         Matrix3::new(-1, 0, 0, 0, 0, -1, 0, -1, 0),
-         Matrix3::new(0, -1, 0, 1, 0, 0, 0, 0, 1),
-         Matrix3::new(0, 1, 0, -1, 0, 0, 0, 0, 1),
-         Matrix3::new(0, 1, 0, 1, 0, 0, 0, 0, -1),
-         Matrix3::new(0, -1, 0, -1, 0, 0, 0, 0, -1),
-         Matrix3::new(0, 1, 0, 0, 0, 1, 1, 0, 0),
-         Matrix3::new(0, -1, 0, 0, 0, -1, 1, 0, 0),
-         Matrix3::new(0, -1, 0, 0, 0, 1, -1, 0, 0),
-         Matrix3::new(0, 1, 0, 0, 0, -1, -1, 0, 0),
-         Matrix3::new(0, 0, 1, 1, 0, 0, 0, 1, 0),
-         Matrix3::new(0, 0, -1, -1, 0, 0, 0, 1, 0),
-         Matrix3::new(0, 0, -1, 1, 0, 0, 0, -1, 0),
-         Matrix3::new(0, 0, 1, -1, 0, 0, 0, -1, 0),
-         Matrix3::new(0, 0, -1, 0, 1, 0, 1, 0, 0),
-         Matrix3::new(0, 0, 1, 0, -1, 0, 1, 0, 0),
-         Matrix3::new(0, 0, 1, 0, 1, 0, -1, 0, 0),
-         Matrix3::new(0, 0, -1, 0, -1, 0, -1, 0, 0)]
+    let a = [-1, 0, 1];
+    itertools::iproduct!(&a, &a, &a, &a, &a, &a, &a, &a, &a).
+        map(|(a, b, c, d, e, f, g, h, i)|
+            Matrix3::new(*a, *b, *c, *d, *e, *f, *g, *h, *i)).
+        filter(|m| determinant(m) == 1).collect()
 }
 
 fn distances(col: &[(i16, i16, i16)]) -> Vec<f64> {
